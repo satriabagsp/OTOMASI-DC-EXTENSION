@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "OTOMASI-DC Extension",
+  "version": "0.1.6",
+  "description": "Otomasi perbaikan siap input BPS Jabar untuk SE2026 L Blok II.",
+  "permissions": [
+    "userScripts"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Buka/tutup OTOMASI-DC Extension"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://fasih-sm.bps.go.id/*"
+      ],
+      "js": [
+        "lib/general_console.js",
+        "lib/custom_console.js",
+        "sheet.js",
+        "panel.js",
+        "custom/otomasi-dc-ntb.js"
+      ],
+      "world": "MAIN",
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://fasih-sm.bps.go.id/*"
+      ],
+      "js": [
+        "bridge.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "templates/batch-automation.template.js",
+        "custom/sheet.html"
+      ],
+      "matches": [
+        "https://fasih-sm.bps.go.id/*"
+      ]
+    }
+  ]
+}
