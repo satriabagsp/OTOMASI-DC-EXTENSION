@@ -50,8 +50,8 @@
               restore: 'otomasi-dc-ext:restore-settings', approval: 'otomasi-dc-ext:approval-queue' };
 
   const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  const BASE = { jeda: 5000, backup: false, remark: true };
-  const SETTINGS_V = 4;      // v4: antarmuka produksi BPS Jabar; remark selalu aktif
+  const BASE = { jeda: 8000, backup: false, remark: true };
+  const SETTINGS_V = 5;      // v5: jeda lebih aman dan remark dikirim dalam satu request
   const RESULT_COLS = [
     { key: '_status', title: 'status', width: 90 },
     { key: '_code', title: 'code_identity', width: 210, mono: true },
@@ -320,7 +320,7 @@
     mod = m; regCount++;
     const defaults = Object.fromEntries(m.options.map((o) => [o.key, o.default ?? (o.type === 'checkbox' ? false : '')]));
     const saved = LS.get(K.settings(m.id), {});
-    if (saved._v !== SETTINGS_V) { delete saved.backup; delete saved.remark; }
+    if (saved._v !== SETTINGS_V) { delete saved.backup; delete saved.remark; delete saved.jeda; }
     S = { ...BASE, ...defaults, ...saved, _v: SETTINGS_V };
     // Versi ini khusus batch BPS Jabar: remark selalu dikirim dan backup
     // generik disembunyikan dari alur operator.
@@ -665,22 +665,37 @@
     .map((rm) => ({ dataKey: rm.dataKey, text: String(row[rm.key] ?? '').trim() }))
     .filter((x) => x.text);
 
-  /* Tulis remark lewat FASIH.setComment (satu submit per remark). Teks yang sudah ada
+  async function retry429(action, label) {
+    const waits = [5000, 15000, 30000];
+    for (let attempt = 0; attempt <= waits.length; attempt++) {
+      try { return await action(); }
+      catch (error) {
+        const rateLimited = /(?:\b429\b|too many requests)/i.test(errText(error));
+        if (!rateLimited || attempt === waits.length || abort) throw error;
+        const ms = waits[attempt];
+        msg(`${label}: server membatasi permintaan. Menunggu ${Math.round(ms / 1000)} detik lalu mencoba lagi (${attempt + 1}/${waits.length})…`, 'err');
+        await sleep(ms);
+      }
+    }
+  }
+
+  /* Tulis seluruh remark yang belum ada dalam satu submit comment. Teks yang sudah ada
      persis di dataKey yang sama dilewati supaya LIVE ulang tidak menggandakan catatan. */
   async function applyRemarks(id, list, dry, remarkKeys = null) {
-    const out = [];
+    const asg = await retry429(() => F().getAssignment(id), 'Cek remark');
+    let notes = [];
+    try { notes = JSON.parse(asg.comment || '{}').notes || []; } catch {}
+    const missing = [];
     for (const rm of list) {
       const text = rm.text;
       const dataKey = (remarkKeys && remarkKeys[rm.dataKey]) || rm.dataKey;   // mis. nama_usaha -> nama_usaha#1001
-      const asg = await F().getAssignment(id);
-      let notes = [];
-      try { notes = JSON.parse(asg.comment || '{}').notes || []; } catch {}
       const ada = notes.some((n) => n && n.dataKey === dataKey && (n.comments || []).some((c) => c && c.comment === text));
-      if (ada) { out.push(`${dataKey} (sudah ada)`); continue; }
-      const r = await F().setComment(id, dataKey, text, { dryRun: dry });
-      out.push(dry ? dataKey : `${dataKey} v${r.version} → v${r.versionAfter}`);
+      if (!ada) missing.push({ dataKey, text });
     }
-    return out;
+    if (!missing.length) return list.map((rm) => (remarkKeys && remarkKeys[rm.dataKey]) || rm.dataKey).map((key) => `${key} (sudah ada)`);
+    if (dry) return missing.map((rm) => rm.dataKey);
+    const result = await retry429(() => F().setComments(id, missing, { dryRun: false }), 'Kirim remark');
+    return missing.map((rm) => `${rm.dataKey} v${result.version} → v${result.versionAfter}`);
   }
 
   async function run(dry) {
@@ -732,7 +747,7 @@
         setStatus(r, 'PROSES…');
         msg(`${dry ? 'Dry run' : 'LIVE'} ${i + 1}/${targets.length}${m.idColumn ? ` — ${item[m.idColumn]}` : ''}`);
         try {
-          const res = (await m.process(item, { ...ctx, index: i, rowNumber: r + 1, remarks })) || {};
+          const res = (await retry429(() => m.process(item, { ...ctx, index: i, rowNumber: r + 1, remarks }), 'Proses assignment')) || {};
           let status = res.status || (res.skip ? 'LEWATI' : dry ? 'DRY RUN' : 'OK'), ket = res.ket;
           if (remarks.length && !res.skip && status !== 'GAGAL') {
             try {

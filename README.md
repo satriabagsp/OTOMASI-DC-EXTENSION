@@ -29,6 +29,9 @@ terlebih dahulu, dikirim bersama remark, lalu dapat disetujui per assignment.
 - Persetujuan batch: tombol **Approve hasil LIVE** membuka assignment satu per
   satu, melakukan approve, dan hanya memberi status `APPROVED` setelah tombol
   **Revoke** terlihat.
+- Pengendalian 429: remark yang belum ada dikirim sekaligus dalam satu
+  pembaruan, jeda antarusaha bawaan adalah 8 detik, dan respons 429 dicoba lagi
+  bertahap setelah 5, 15, lalu 30 detik.
 - Unduh CSV hasil untuk dokumentasi dan rekonsiliasi lokal.
 
 ## Alur operator
@@ -71,6 +74,14 @@ Keluaran akan dipecah per kabupaten/kota dan per 50 usaha di folder
   menampilkan tombol Revoke; bila terjadi error, periksa assignment terkait
   sebelum mengulanginya.
 - Jangan menjalankan dua batch yang memuat usaha sama dari browser yang sama.
+
+## Jika muncul HTTP 429
+
+HTTP 429 berarti FASIH sedang membatasi frekuensi permintaan, bukan berarti
+nilai pada batch salah. Biarkan extension menyelesaikan waktu tunggu otomatis;
+jangan menekan LIVE berulang kali atau membuka batch lain pada akun yang sama.
+Jika 429 tetap berulang setelah tiga kali percobaan otomatis, hentikan proses,
+tunggu beberapa menit, lalu mulai lagi dari **Dry run** pada batch kecil.
 
 ## Kredit dan lisensi
 
