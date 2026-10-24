@@ -83,6 +83,12 @@ jangan menekan LIVE berulang kali atau membuka batch lain pada akun yang sama.
 Jika 429 tetap berulang setelah tiga kali percobaan otomatis, hentikan proses,
 tunggu beberapa menit, lalu mulai lagi dari **Dry run** pada batch kecil.
 
+Apabila muncul `presigned URL tidak tersedia`, nilai juga belum terkirim.
+Extension versi ini mencoba kembali tahap penyiapan unggahan hingga tiga kali.
+Jika masih gagal, refresh halaman FASIH atau login ulang, lalu uji satu baris;
+hal itu biasanya menandakan gangguan sementara layanan unggah FASIH atau sesi
+login yang sudah tidak segar.
+
 ## Kredit dan lisensi
 
 Paket ini merupakan turunan yang dioptimalkan untuk data siap input BPS Jawa
