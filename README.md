@@ -1,5 +1,14 @@
 # Otomasi Perbaikan BPS Jabar
 
+> ## Penghargaan utama
+>
+> Proyek ini dibangun di atas fondasi
+> [**fasih-batch-extension**](https://github.com/nahrx/fasih-batch-extension)
+> karya [**Nahar Ridlo Nasrullah (@nahrx)**](https://github.com/nahrx).
+> Terima kasih atas arsitektur extension, utilitas FASIH, dan lisensi terbuka
+> yang memungkinkan pengembangan penyesuaian untuk kebutuhan BPS Jawa Barat.
+> Seluruh kredit atas fondasi proyek ini tetap kepada Nahar.
+
 Ekstensi Chromium untuk membantu petugas memproses batch data **siap input**
 pada FASIH SE2026 L Blok II. Paket ini ditujukan untuk alur kerja BPS Jawa Barat:
 data yang telah dihitung dan divalidasi sebelumnya dimuat dari CSV, diperiksa
@@ -67,8 +76,9 @@ Keluaran akan dipecah per kabupaten/kota dan per 50 usaha di folder
 
 Paket ini merupakan turunan yang dioptimalkan untuk data siap input BPS Jawa
 Barat dari proyek [fasih-batch-extension](https://github.com/nahrx/fasih-batch-extension)
-oleh Nahar Ridlo Nasrullah. Struktur awal ekstensi, utilitas FASIH, dan lisensi
-MIT dipertahankan sesuai lisensi proyek asal. Perubahan BPS Jabar mencakup
+oleh [Nahar Ridlo Nasrullah (@nahrx)](https://github.com/nahrx). Struktur awal
+extension, utilitas FASIH, dan lisensi MIT dipertahankan sesuai lisensi proyek
+asal. Perubahan BPS Jabar mencakup
 alur CSV siap input, pemetaan roster usaha, remark `#0`/`#3`, pemeriksaan
 pekerjaan sebelumnya, persetujuan assignment, dan tampilan operator.
 
