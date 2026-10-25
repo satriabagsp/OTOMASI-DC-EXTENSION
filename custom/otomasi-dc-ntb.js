@@ -85,6 +85,27 @@ OTOMASI_DC_BATCH.register({
     }
 
     const noUsaha = suffixes[0];
+    const tahunItem = answers.find((answer) => answer.dataKey === 'tahun_operasi#' + noUsaha);
+    const tahunRaw = String(tahunItem?.answer ?? '').trim();
+    if (!/^\d{4}$/.test(tahunRaw)) {
+      return {
+        skip: true,
+        status: 'DILEWATI',
+        code: assignment.code_identity,
+        ket: '#' + noUsaha + ' tahun operasi kosong atau tidak valid; tidak ada nilai yang diubah',
+      };
+    }
+    const tahunOperasi = Number(tahunRaw);
+    if (tahunOperasi >= 2026) {
+      return {
+        skip: true,
+        status: 'DILEWATI',
+        code: assignment.code_identity,
+        ket: '#' + noUsaha + ' tahun operasi ' + tahunOperasi +
+          ' menggunakan isian bulanan; tidak ada nilai yang diubah',
+      };
+    }
+
     const cari = (key) => {
       const item = answers.find((answer) => answer.dataKey === key + '#' + noUsaha);
       return item ? angka(item.answer) : 0;

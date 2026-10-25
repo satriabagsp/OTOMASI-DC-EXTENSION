@@ -24,6 +24,9 @@ terlebih dahulu, dikirim bersama remark, lalu dapat disetujui per assignment.
 - Memproses nilai 26a–27b, menghitung ulang total pengeluaran dan total
   pendapatan, serta menulis tujuh remark `#0`/`#3`.
 - **Dry run** untuk membandingkan isi CSV dengan data FASIH sebelum pengiriman.
+- Pemeriksaan tahun operasi langsung dari assignment: hanya tahun di bawah
+  2026 yang memakai isian tahunan. Tahun 2026 atau lebih, serta tahun yang
+  kosong/tidak valid, diberi status `DILEWATI` sebelum ada nilai yang diubah.
 - Pemeriksaan pekerjaan sebelumnya: jika nilai dan tujuh remark telah sama,
   baris diberi status `SELESAI` dan tidak dikirim ulang.
 - Persetujuan batch: tombol **Approve hasil LIVE** membuka assignment satu per
@@ -70,6 +73,8 @@ Keluaran akan dipecah per kabupaten/kota dan per 50 usaha di folder
 ## Batasan
 
 - Extension tidak memperbarui database pusat.
+- Extension ini memakai isian tahunan 26a–27b. Dukungan isian bulanan untuk
+  usaha dengan tahun operasi 2026 belum tersedia.
 - Status `APPROVED` di extension hanya dipasang setelah antarmuka FASIH
   menampilkan tombol Revoke; bila terjadi error, periksa assignment terkait
   sebelum mengulanginya.
