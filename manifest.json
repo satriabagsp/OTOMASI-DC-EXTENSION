@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "OTOMASI-DC Extension",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "description": "Otomasi perbaikan siap input BPS Jabar untuk SE2026 L Blok II.",
   "permissions": [
     "userScripts"
@@ -21,6 +21,7 @@
         "lib/general_console.js",
         "lib/custom_console.js",
         "sheet.js",
+        "remark-policy.js",
         "panel.js",
         "custom/otomasi-dc-ntb.js"
       ],

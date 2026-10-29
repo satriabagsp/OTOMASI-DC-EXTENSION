@@ -21,13 +21,14 @@ terlebih dahulu, dikirim bersama remark, lalu dapat disetujui per assignment.
 
 - Memuat CSV batch tanpa salin-tempel; formatnya dibuat oleh
   `FASIH_BATCH_NTB/siapkan_tsv_ntb.py`.
-- Memproses nilai 26a–27b, menghitung ulang total pengeluaran dan total
-  pendapatan, serta menulis tujuh remark `#0`/`#3`.
+- Memproses nilai 26a–27b dan menghitung ulang total pengeluaran dan pendapatan.
+  Jika ada remark perubahan, hanya remark perubahan yang dikirim; `#0` lainnya
+  dikosongkan. Jika seluruhnya `#0`, cukup satu remark `#0`.
 - **Dry run** untuk membandingkan isi CSV dengan data FASIH sebelum pengiriman.
 - Pemeriksaan tahun operasi langsung dari assignment: hanya tahun di bawah
   2026 yang memakai isian tahunan. Tahun 2026 atau lebih, serta tahun yang
   kosong/tidak valid, diberi status `DILEWATI` sebelum ada nilai yang diubah.
-- Pemeriksaan pekerjaan sebelumnya: jika nilai dan tujuh remark telah sama,
+- Pemeriksaan pekerjaan sebelumnya: jika nilai dan remark yang diminta telah sama,
   baris diberi status `SELESAI` dan tidak dikirim ulang.
 - Persetujuan batch: tombol **Approve hasil LIVE** membuka assignment satu per
   satu, melakukan approve, dan hanya memberi status `APPROVED` setelah tombol
@@ -50,6 +51,13 @@ terlebih dahulu, dikirim bersama remark, lalu dapat disetujui per assignment.
 
 Baris `SELESAI` masih perlu masuk antrean approve karena nilai dan remark yang
 sudah tersimpan tidak otomatis berarti assignment telah disetujui.
+
+CSV lama dapat digunakan: remark dinormalisasi saat diunggah. Jika sudah ada
+remark FASIH yang menyebabkan `#0` bercampur dengan remark lain, baris ditandai
+`PERLU_DATA` sebelum nilai diubah dan harus diperiksa; catatan lama tidak dihapus.
+Setiap komputer harus memperbarui extension lalu memuat ulang halaman FASIH.
+Jika memakai skrip NTB yang pernah diimpor, gunakan skrip bawaan versi terbaru;
+skrip lama tidak mendukung aturan ini.
 
 ## Menyiapkan file batch
 

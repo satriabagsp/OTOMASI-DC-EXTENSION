@@ -315,6 +315,9 @@
 
   function register(def) {
     if (running) throw new Error('OTOMASI_DC_BATCH sedang berjalan — tunggu selesai atau Stop dulu');
+    if (def.id === 'koreksi-ntb-se2026-l-blok-ii' && def.remarkPolicyVersion !== 2) {
+      throw new Error('Skrip NTB lama tidak mendukung aturan remark terbaru. Gunakan skrip bawaan extension versi terbaru.');
+    }
     const m = normalize(def);
     if (sheet) { saveNow(); sheet.destroy(); sheet = null; }
     mod = m; regCount++;
@@ -647,10 +650,8 @@
       if (wrong >= 0) throw new Error(`baris ${wrong + start + 1} memiliki ${values[wrong].length} kolom; seharusnya ${expected.length}. Gunakan CSV hasil siapkan_tsv_ntb.py.`);
       const rows = values.map((line) => {
         const item = Object.fromEntries(expected.map((col, i) => [col.key, line[i] ?? '']));
-        // CSV lama mungkin belum membawa #0. Setiap rincian tanpa remark eksplisit
-        // dicatat sebagai #0 agar seluruh 26a–27b memiliki catatan.
-        for (const remark of mod.remarks) if (!String(item[remark.key] ?? '').trim()) item[remark.key] = '#0';
-        return item;
+        return mod.id === 'koreksi-ntb-se2026-l-blok-ii'
+          ? window.OTOMASI_DC_REMARK_POLICY.normalize(item, mod.remarks) : item;
       });
       sheet.setRows(rows);
       summary(); sheet.render(); saveNow();
@@ -683,8 +684,14 @@
      persis di dataKey yang sama dilewati supaya LIVE ulang tidak menggandakan catatan. */
   async function applyRemarks(id, list, dry, remarkKeys = null) {
     const asg = await retry429(() => F().getAssignment(id), 'Cek remark');
-    let notes = [];
-    try { notes = JSON.parse(asg.comment || '{}').notes || []; } catch {}
+    let notes;
+    try { notes = JSON.parse(asg.comment || '{}').notes || []; }
+    catch { throw new Error('Remark FASIH tidak dapat dibaca; periksa manual.'); }
+    if (mod?.id === 'koreksi-ntb-se2026-l-blok-ii') {
+      const suffix = Object.values(remarkKeys || {}).map((key) => String(key).match(/#(\d+)$/)?.[1]).find(Boolean);
+      const conflict = window.OTOMASI_DC_REMARK_POLICY.conflict(notes, suffix, list);
+      if (conflict) throw new Error(conflict);
+    }
     const missing = [];
     for (const rm of list) {
       const text = rm.text;

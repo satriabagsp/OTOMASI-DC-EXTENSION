@@ -32,6 +32,7 @@ function adaNilai(v) {
 
 OTOMASI_DC_BATCH.register({
   id: 'koreksi-ntb-se2026-l-blok-ii',
+  remarkPolicyVersion: 2,
   name: 'Koreksi NTB — SE2026 L Blok II',
   description: 'Mengubah komponen 26a–27b dan menghitung ulang total pengeluaran serta total pendapatan.',
 
@@ -60,6 +61,8 @@ OTOMASI_DC_BATCH.register({
         error[key] = 'harus berupa bilangan bulat tidak negatif';
       }
     }
+    const remarks = NILAI.map((dataKey) => ({ dataKey, key: 'remark_' + dataKey }));
+    Object.assign(error, globalThis.OTOMASI_DC_REMARK_POLICY.validate(row, remarks));
     return Object.keys(error).length ? error : null;
   },
 
@@ -111,7 +114,7 @@ OTOMASI_DC_BATCH.register({
     const jawaban = new Map(answers.map((answer) => [answer.dataKey, answer]));
     const tidakAda = NILAI.filter((key) => !jawaban.has(key + '#' + noUsaha));
     const tersedia = NILAI.filter((key) => !tidakAda.includes(key));
-    const remarkBukanNol = (text) => !['', '#0', '#DC_00'].includes(String(text ?? '').trim().toUpperCase());
+    const remarkBukanNol = (text) => String(text ?? '').trim() && !globalThis.OTOMASI_DC_REMARK_POLICY.zero(text);
     const mintaNilaiTakTersedia = tidakAda.filter((key) => adaNilai(row[key]));
     const mintaRemarkTakTersedia = remarks.filter((rm) =>
       tidakAda.includes(rm.dataKey) && remarkBukanNol(rm.text));
@@ -130,6 +133,32 @@ OTOMASI_DC_BATCH.register({
     if (tidakAda.length) {
       remarks.splice(0, remarks.length, ...remarks.filter((rm) => !tidakAda.includes(rm.dataKey)));
     }
+    // Bila satu-satunya #0 semula dipilih pada rincian tersembunyi, pindahkan
+    // ke satu rincian yang benar-benar tersedia untuk usaha tersebut.
+    const hanyaNolDiminta = NILAI.some((key) => globalThis.OTOMASI_DC_REMARK_POLICY.zero(row['remark_' + key])) &&
+      !NILAI.some((key) => {
+        const v = String(row['remark_' + key] ?? '').trim();
+        return v && !globalThis.OTOMASI_DC_REMARK_POLICY.zero(v);
+      });
+    if (!remarks.length && hanyaNolDiminta && tersedia.length) {
+      remarks.push({ dataKey: tersedia[0], text: '#0' });
+    }
+    if (!remarks.length) {
+      return { skip: true, status: 'PERLU_DATA', code: assignment.code_identity,
+               ket: '#' + noUsaha + ' tidak ada rincian yang tersedia untuk remark' };
+    }
+    let notes;
+    try { notes = JSON.parse(assignment.comment || '{}').notes || []; }
+    catch { return { skip: true, status: 'PERLU_DATA', code: assignment.code_identity,
+                     ket: '#' + noUsaha + ' remark FASIH tidak dapat dibaca; periksa manual' }; }
+    let conflict;
+    try { conflict = globalThis.OTOMASI_DC_REMARK_POLICY.conflict(notes, noUsaha, remarks); }
+    catch (error) { return { skip: true, status: 'PERLU_DATA', code: assignment.code_identity,
+                             ket: '#' + noUsaha + ' ' + error.message }; }
+    if (conflict) {
+      return { skip: true, status: 'PERLU_DATA', code: assignment.code_identity,
+               ket: '#' + noUsaha + ' ' + conflict };
+    }
     const cari = (key) => angka(jawaban.get(key + '#' + noUsaha).answer);
     const perubahan = {};
     for (const key of tersedia) {
@@ -140,24 +169,29 @@ OTOMASI_DC_BATCH.register({
     const remarkKeys = Object.fromEntries(tersedia.map((key) => [key, key + '#' + noUsaha]));
 
     if (!Object.keys(perubahan).length) {
+      const hanyaNol = remarks.every((rm) => globalThis.OTOMASI_DC_REMARK_POLICY.zero(rm.text));
+      const sudahAdaNol = notes.some((note) => note && typeof note.dataKey === 'string' &&
+        note.dataKey.endsWith('#' + noUsaha) && Array.isArray(note.comments) &&
+        note.comments.some((comment) => globalThis.OTOMASI_DC_REMARK_POLICY.zero(comment?.comment)));
+      if (hanyaNol && sudahAdaNol) {
+        return { skip: true, status: 'SELESAI', code: assignment.code_identity,
+          ket: '#' + noUsaha + ' nilai sudah sesuai dan remark #0 sudah ada' };
+      }
       // Jangan kirim ulang assignment yang sudah benar-benar selesai. Status
-      // "selesai" hanya dipakai bila tujuh nilai dan ketujuh remark dari file
-      // sudah ada persis di FASIH; remark sebagian tetap akan dilengkapi.
-      let notes = [];
-      try { notes = JSON.parse(assignment.comment || '{}').notes || []; } catch {}
+      // "selesai" hanya dipakai bila semua remark yang diminta sudah ada.
       const remarkAda = (rm) => {
         const dataKey = remarkKeys[rm.dataKey];
         return notes.some((note) => note && note.dataKey === dataKey &&
           (note.comments || []).some((comment) => comment && comment.comment === rm.text));
       };
-      const semuaRemarkSelesai = remarks.length === tersedia.length && remarks.every(remarkAda);
+      const semuaRemarkSelesai = remarks.length > 0 && remarks.every(remarkAda);
       if (semuaRemarkSelesai) {
         return {
           skip: true,
           status: 'SELESAI',
           code: assignment.code_identity,
           remarkKeys,
-          ket: '#' + noUsaha + ' nilai dan 7 remark sudah ada di FASIH; dilewati',
+          ket: '#' + noUsaha + ' nilai dan seluruh remark yang diminta sudah ada di FASIH; dilewati',
         };
       }
       if (remarks.length) {
