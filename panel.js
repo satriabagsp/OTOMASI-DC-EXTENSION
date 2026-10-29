@@ -421,7 +421,7 @@
 
   /* ---------------- validasi ---------------- */
   function itemOf(row) {
-    return Object.fromEntries(mod.columns.map((c) => {
+    return Object.fromEntries([...mod.columns, ...mod.remarks].map((c) => {
       const s = String(row[c.key] ?? '');
       if (c.type === 'number' || c.type === 'integer') return [c.key, s.trim() === '' ? null : Number(s.trim().replace(',', '.'))];
       return [c.key, s];
@@ -455,7 +455,7 @@
         try {
           const e = mod.validateRow(item);
           if (typeof e === 'string' && e) mark(r, mod.columns[0].key, e);
-          else if (e && typeof e === 'object') for (const [k, why] of Object.entries(e)) if (why) mark(r, mod.columns.some((c) => c.key === k) ? k : mod.columns[0].key, String(why));
+          else if (e && typeof e === 'object') for (const [k, why] of Object.entries(e)) if (why) mark(r, [...mod.columns, ...mod.remarks].some((c) => c.key === k) ? k : mod.columns[0].key, String(why));
         } catch (e) { mark(r, mod.columns[0].key, `validateRow error: ${e.message}`); }
       }
       items.push({ r, item });

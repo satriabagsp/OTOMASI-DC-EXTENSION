@@ -18,6 +18,16 @@ assert.equal(policy.conflict([{dataKey:'gaji#2', comments:[{comment:'#0'}]}], '1
 let mod;
 const context = { OTOMASI_DC_REMARK_POLICY: policy, OTOMASI_DC_BATCH: {register: m => {mod=m;}}, console };
 vm.runInNewContext(fs.readFileSync('./custom/otomasi-dc-ntb.js', 'utf8'), context);
+// Uji jalur panel yang sebenarnya: data nilai dan remark harus masuk ke validateRow.
+const panel = fs.readFileSync('./panel.js', 'utf8');
+const itemCode = panel.slice(panel.indexOf('  function itemOf(row)'), panel.indexOf('  function validate()'));
+const fullMod = {...mod, remarks: defs};
+const itemContext = {mod: fullMod};
+vm.runInNewContext(itemCode + '\nthis.itemOf = itemOf;', itemContext);
+const item = itemContext.itemOf({...clean, assignment_id:'000060da-ca3f-4db0-be79-dd488da2d9de', nama_usaha:'TOKO'});
+assert.equal(item.remark_operasional, '#3');
+assert.equal(mod.validateRow(item), null);
+assert.ok(mod.validateRow({...item, remark_operasional:''}).remark_operasional);
 const answers = [{dataKey:'nama_usaha#1',answer:'TOKO'}, {dataKey:'tahun_operasi#1',answer:'2020'}, ...keys.map(k=>({dataKey:k+'#1',answer:'100'}))];
 let notes=[]; let patches=0;
 const fasih={getAssignment:async()=>({data:JSON.stringify({answers}),comment:JSON.stringify({notes}),code_identity:'test'}), patch:async()=>{patches++; return {};}};
