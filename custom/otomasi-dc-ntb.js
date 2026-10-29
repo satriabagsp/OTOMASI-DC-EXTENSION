@@ -106,17 +106,38 @@ OTOMASI_DC_BATCH.register({
       };
     }
 
-    const cari = (key) => {
-      const item = answers.find((answer) => answer.dataKey === key + '#' + noUsaha);
-      return item ? angka(item.answer) : 0;
-    };
+    // FASIH.set() dapat MENAMBAH dataKey baru apabila key belum ada pada
+    // assignment. Rincian yang tidak tersedia tidak boleh dibuat otomatis.
+    const jawaban = new Map(answers.map((answer) => [answer.dataKey, answer]));
+    const tidakAda = NILAI.filter((key) => !jawaban.has(key + '#' + noUsaha));
+    const tersedia = NILAI.filter((key) => !tidakAda.includes(key));
+    const remarkBukanNol = (text) => !['', '#0', '#DC_00'].includes(String(text ?? '').trim().toUpperCase());
+    const mintaNilaiTakTersedia = tidakAda.filter((key) => adaNilai(row[key]));
+    const mintaRemarkTakTersedia = remarks.filter((rm) =>
+      tidakAda.includes(rm.dataKey) && remarkBukanNol(rm.text));
+    if (mintaNilaiTakTersedia.length || mintaRemarkTakTersedia.length) {
+      return {
+        skip: true,
+        status: 'PERLU_DATA',
+        code: assignment.code_identity,
+        ket: '#' + noUsaha + ' perubahan diminta pada rincian yang tidak tersedia: ' +
+          [...mintaNilaiTakTersedia, ...mintaRemarkTakTersedia.map((rm) => rm.dataKey)].join(', ') +
+          '; tidak ada yang dikirim',
+      };
+    }
+    // Remark #0 untuk rincian yang tidak tampil juga dilewati. Mutasi array
+    // diperlukan agar panel tidak mengirim comment ke dataKey yang tidak ada.
+    if (tidakAda.length) {
+      remarks.splice(0, remarks.length, ...remarks.filter((rm) => !tidakAda.includes(rm.dataKey)));
+    }
+    const cari = (key) => angka(jawaban.get(key + '#' + noUsaha).answer);
     const perubahan = {};
-    for (const key of NILAI) {
+    for (const key of tersedia) {
       if (!adaNilai(row[key])) continue;
       const baru = Number(row[key]);
       if (cari(key) !== baru) perubahan[key] = baru;
     }
-    const remarkKeys = Object.fromEntries(NILAI.map((key) => [key, key + '#' + noUsaha]));
+    const remarkKeys = Object.fromEntries(tersedia.map((key) => [key, key + '#' + noUsaha]));
 
     if (!Object.keys(perubahan).length) {
       // Jangan kirim ulang assignment yang sudah benar-benar selesai. Status
@@ -129,7 +150,7 @@ OTOMASI_DC_BATCH.register({
         return notes.some((note) => note && note.dataKey === dataKey &&
           (note.comments || []).some((comment) => comment && comment.comment === rm.text));
       };
-      const semuaRemarkSelesai = remarks.length === NILAI.length && remarks.every(remarkAda);
+      const semuaRemarkSelesai = remarks.length === tersedia.length && remarks.every(remarkAda);
       if (semuaRemarkSelesai) {
         return {
           skip: true,
@@ -148,12 +169,16 @@ OTOMASI_DC_BATCH.register({
 
     const bacaSetelah = (key) => Object.prototype.hasOwnProperty.call(perubahan, key)
       ? perubahan[key] : cari(key);
-    const totalPengeluaran = PENGELUARAN.reduce((total, key) => total + bacaSetelah(key), 0);
-    const totalPendapatan = PENDAPATAN.reduce((total, key) => total + bacaSetelah(key), 0);
+    const pengeluaranLengkap = PENGELUARAN.every((key) => tersedia.includes(key));
+    const pendapatanLengkap = PENDAPATAN.every((key) => tersedia.includes(key));
+    const totalPengeluaran = pengeluaranLengkap
+      ? PENGELUARAN.reduce((total, key) => total + bacaSetelah(key), 0) : null;
+    const totalPendapatan = pendapatanLengkap
+      ? PENDAPATAN.reduce((total, key) => total + bacaSetelah(key), 0) : null;
     const result = await FASIH.patch(row.assignment_id, (doc, { set }) => {
       for (const [key, value] of Object.entries(perubahan)) set(key + '#' + noUsaha, value);
-      set('total_pengeluaran#' + noUsaha, totalPengeluaran);
-      set('total_pendapatan#' + noUsaha, totalPendapatan);
+      if (totalPengeluaran !== null) set('total_pengeluaran#' + noUsaha, totalPengeluaran);
+      if (totalPendapatan !== null) set('total_pendapatan#' + noUsaha, totalPendapatan);
     }, { dryRun, log: false });
 
     const rincian = Object.entries(perubahan)
@@ -164,8 +189,8 @@ OTOMASI_DC_BATCH.register({
       ket: [
         '#' + noUsaha,
         ...rincian,
-        'total_pengeluaran ' + rupiah(totalPengeluaran),
-        'total_pendapatan ' + rupiah(totalPendapatan),
+        totalPengeluaran === null ? 'total_pengeluaran tidak diubah (rincian tidak lengkap)' : 'total_pengeluaran ' + rupiah(totalPengeluaran),
+        totalPendapatan === null ? 'total_pendapatan tidak diubah (rincian tidak lengkap)' : 'total_pendapatan ' + rupiah(totalPendapatan),
         result.nChanges + ' perubahan',
         dryRun ? 'uji coba' : 'terkirim',
       ].join(' · '),

@@ -40,8 +40,8 @@ terlebih dahulu, dikirim bersama remark, lalu dapat disetujui per assignment.
 ## Alur operator
 
 1. Buka FASIH dan login dengan akun petugas.
-2. Buka ekstensi, klik **Muat CSV batch**, lalu pilih satu file batch (maksimal
-   50 usaha).
+2. Buka ekstensi, klik **Muat CSV batch**, lalu pilih satu file batch. File
+   berisi 100 usaha dapat digunakan.
 3. Jalankan **Dry run** dan periksa statusnya.
 4. Klik **Jalankan LIVE** hanya untuk data yang sudah benar.
 5. Buka salah satu halaman assignment dari periode yang sama, lalu klik
@@ -56,10 +56,10 @@ sudah tersimpan tidak otomatis berarti assignment telah disetujui.
 Dari folder `D:\SE\OTOMASI-DC\FASIH_BATCH_NTB` jalankan:
 
 ```powershell
-python siapkan_tsv_ntb.py --semua-folder
+python siapkan_tsv_ntb.py --semua-folder --per-file 100
 ```
 
-Keluaran akan dipecah per kabupaten/kota dan per 50 usaha di folder
+Keluaran akan dipecah per kabupaten/kota dan maksimal 100 usaha per file di folder
 `DATA_FASIH_BATCH_PER_USAHA/<kode-wilayah>/`.
 
 ## Instalasi lokal
