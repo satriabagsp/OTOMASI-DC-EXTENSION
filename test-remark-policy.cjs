@@ -30,12 +30,15 @@ assert.equal(mod.validateRow(item), null);
 assert.ok(mod.validateRow({...item, remark_operasional:''}).remark_operasional);
 const answers = [{dataKey:'nama_usaha#1',answer:'TOKO'}, {dataKey:'tahun_operasi#1',answer:'2020'}, ...keys.map(k=>({dataKey:k+'#1',answer:'100'}))];
 let notes=[]; let patches=0;
-const fasih={getAssignment:async()=>({data:JSON.stringify({answers}),comment:JSON.stringify({notes}),code_identity:'test'}), patch:async()=>{patches++; return {};}};
+const fasih={getAssignment:async()=>({data:JSON.stringify({answers}),comment:JSON.stringify({notes}),code_identity:'test'}), patch:async()=>{patches++; return {code:'test', nChanges:1};}};
 (async()=>{
  notes=[{dataKey:'gaji#1',comments:[{comment:'#0'}]}];
  let result=await mod.process({assignment_id:'test',nama_usaha:'TOKO',operasional:'220000'},{dryRun:false,FASIH:fasih,remarks:[{dataKey:'operasional',text:'#3'}]});
- assert.equal(result.status,'PERLU_DATA'); assert.equal(patches,0);
+ assert.notEqual(result.status,'PERLU_DATA'); assert.equal(patches,1);
  result=await mod.process({assignment_id:'test',nama_usaha:'TOKO'},{dryRun:false,FASIH:fasih,remarks:[{dataKey:'operasional',text:'#0'}]});
- assert.equal(result.status,'SELESAI'); assert.equal(patches,0);
+ assert.equal(result.status,'SUDAH_DIKERJAKAN'); assert.equal(patches,1);
+ notes=[{dataKey:'operasional#1',comments:[{comment:'#3'}]}];
+ result=await mod.process({assignment_id:'test',nama_usaha:'TOKO',operasional:'100'},{dryRun:true,FASIH:fasih,remarks:[{dataKey:'operasional',text:'#3'}]});
+ assert.equal(result.status,'SUDAH_DIKERJAKAN'); assert.equal(patches,1);
  console.log('Pengujian aturan remark dan pemeriksaan sebelum perubahan: lulus.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

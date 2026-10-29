@@ -151,14 +151,8 @@ OTOMASI_DC_BATCH.register({
     try { notes = JSON.parse(assignment.comment || '{}').notes || []; }
     catch { return { skip: true, status: 'PERLU_DATA', code: assignment.code_identity,
                      ket: '#' + noUsaha + ' remark FASIH tidak dapat dibaca; periksa manual' }; }
-    let conflict;
-    try { conflict = globalThis.OTOMASI_DC_REMARK_POLICY.conflict(notes, noUsaha, remarks); }
-    catch (error) { return { skip: true, status: 'PERLU_DATA', code: assignment.code_identity,
-                             ket: '#' + noUsaha + ' ' + error.message }; }
-    if (conflict) {
-      return { skip: true, status: 'PERLU_DATA', code: assignment.code_identity,
-               ket: '#' + noUsaha + ' ' + conflict };
-    }
+    if (!Array.isArray(notes)) return { skip: true, status: 'PERLU_DATA', code: assignment.code_identity,
+      ket: '#' + noUsaha + ' struktur remark FASIH tidak dikenali; periksa manual' };
     const cari = (key) => angka(jawaban.get(key + '#' + noUsaha).answer);
     const perubahan = {};
     for (const key of tersedia) {
@@ -174,8 +168,8 @@ OTOMASI_DC_BATCH.register({
         note.dataKey.endsWith('#' + noUsaha) && Array.isArray(note.comments) &&
         note.comments.some((comment) => globalThis.OTOMASI_DC_REMARK_POLICY.zero(comment?.comment)));
       if (hanyaNol && sudahAdaNol) {
-        return { skip: true, status: 'SELESAI', code: assignment.code_identity,
-          ket: '#' + noUsaha + ' nilai sudah sesuai dan remark #0 sudah ada' };
+        return { skip: true, status: 'SUDAH_DIKERJAKAN', code: assignment.code_identity,
+          ket: '#' + noUsaha + ' nilai yang diminta sudah sesuai dan remark #0 sudah ada di FASIH' };
       }
       // Jangan kirim ulang assignment yang sudah benar-benar selesai. Status
       // "selesai" hanya dipakai bila semua remark yang diminta sudah ada.
@@ -188,10 +182,10 @@ OTOMASI_DC_BATCH.register({
       if (semuaRemarkSelesai) {
         return {
           skip: true,
-          status: 'SELESAI',
+          status: 'SUDAH_DIKERJAKAN',
           code: assignment.code_identity,
           remarkKeys,
-          ket: '#' + noUsaha + ' nilai dan seluruh remark yang diminta sudah ada di FASIH; dilewati',
+          ket: '#' + noUsaha + ' nilai yang diminta sudah sesuai dan remark yang diminta sudah ada di FASIH',
         };
       }
       if (remarks.length) {

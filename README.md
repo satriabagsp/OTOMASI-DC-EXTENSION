@@ -49,12 +49,12 @@ terlebih dahulu, dikirim bersama remark, lalu dapat disetujui per assignment.
    **Approve hasil LIVE**.
 6. Unduh hasil CSV setelah proses selesai.
 
-Baris `SELESAI` masih perlu masuk antrean approve karena nilai dan remark yang
+Baris `SUDAH_DIKERJAKAN` masih perlu masuk antrean approve karena nilai dan remark yang
 sudah tersimpan tidak otomatis berarti assignment telah disetujui.
 
-CSV lama dapat digunakan: remark dinormalisasi saat diunggah. Jika sudah ada
-remark FASIH yang menyebabkan `#0` bercampur dengan remark lain, baris ditandai
-`PERLU_DATA` sebelum nilai diubah dan harus diperiksa; catatan lama tidak dihapus.
+CSV lama dapat digunakan: remark dinormalisasi saat diunggah. Remark yang sudah
+ada di FASIH tidak menghalangi proses dan catatan lama tidak dihapus. Akibatnya,
+remark lama #0 dapat tetap bercampur dengan remark perubahan yang baru.
 Setiap komputer harus memperbarui extension lalu memuat ulang halaman FASIH.
 Jika memakai skrip NTB yang pernah diimpor, gunakan skrip bawaan versi terbaru;
 skrip lama tidak mendukung aturan ini.

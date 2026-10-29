@@ -57,7 +57,7 @@
     { key: '_code', title: 'code_identity', width: 210, mono: true },
     { key: '_ket', title: 'keterangan', width: 520 },
   ];
-  const STATUS_CLASS = { 'OK': 'st-ok', 'SELESAI': 'st-ok', 'APPROVED': 'st-ok', 'DRY RUN': 'st-dry', 'LEWATI': 'st-skip', 'GAGAL': 'st-fail', 'GAGAL APPROVE': 'st-fail', 'PROSES…': 'st-run', 'ANTRI': 'st-queue' };
+  const STATUS_CLASS = { 'OK': 'st-ok', 'SELESAI': 'st-ok', 'SUDAH_DIKERJAKAN': 'st-ok', 'APPROVED': 'st-ok', 'DRY RUN': 'st-dry', 'LEWATI': 'st-skip', 'GAGAL': 'st-fail', 'GAGAL APPROVE': 'st-fail', 'PROSES…': 'st-run', 'ANTRI': 'st-queue' };
   const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
   const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -570,9 +570,9 @@
     if (!route) return msg('Buka satu halaman assignment FASIH terlebih dahulu, lalu klik Approve hasil LIVE.', 'err');
     // SELESAI berarti nilai dan remark sudah ada, tetapi status assignment
     // belum tentu approved. Keduanya harus masuk antrean persetujuan.
-    const ids = [...new Set(sheet.filled().filter(({ row }) => ['OK', 'SELESAI'].includes(row._status))
+    const ids = [...new Set(sheet.filled().filter(({ row }) => ['OK', 'SELESAI', 'SUDAH_DIKERJAKAN'].includes(row._status))
       .map(({ row }) => String(row[mod.idColumn] || '').trim()).filter(Boolean))];
-    if (!ids.length) return msg('Tidak ada baris status OK atau SELESAI untuk di-approve.', 'err');
+    if (!ids.length) return msg('Tidak ada baris status OK atau SUDAH_DIKERJAKAN untuk di-approve.', 'err');
     if (!confirm(`Approve ${ids.length} assignment hasil LIVE?\n\nExtension akan membuka setiap assignment, menekan Approve hanya jika tombol Approve tersedia, lalu memastikan tombol Revoke muncul. Antrean berhenti pada error pertama.`)) return;
     LS.set(K.approval, { active: true, prefix: route.prefix, ids, index: 0, delayMs: Math.max(3000, Number(S.jeda) || 0), createdAt: new Date().toISOString() });
     resumeApprovalQueue();
@@ -687,11 +687,7 @@
     let notes;
     try { notes = JSON.parse(asg.comment || '{}').notes || []; }
     catch { throw new Error('Remark FASIH tidak dapat dibaca; periksa manual.'); }
-    if (mod?.id === 'koreksi-ntb-se2026-l-blok-ii') {
-      const suffix = Object.values(remarkKeys || {}).map((key) => String(key).match(/#(\d+)$/)?.[1]).find(Boolean);
-      const conflict = window.OTOMASI_DC_REMARK_POLICY.conflict(notes, suffix, list);
-      if (conflict) throw new Error(conflict);
-    }
+    if (!Array.isArray(notes)) throw new Error('Struktur remark FASIH tidak dikenali; periksa manual.');
     const missing = [];
     for (const rm of list) {
       const text = rm.text;
@@ -715,7 +711,7 @@
         .map(([r, m]) => `baris ${r + 1}: ${[...m].map(([k, why]) => `${k} ${why}`).join(', ')}`).join('; ');
       return msg(`${v.bad} baris tidak valid — ${contoh}`, 'err');
     }
-    const targets = dry ? v.items : v.items.filter((x) => !['OK', 'SELESAI', 'APPROVED'].includes(sheet.rows[x.r]._status));
+    const targets = dry ? v.items : v.items.filter((x) => !['OK', 'SELESAI', 'SUDAH_DIKERJAKAN', 'APPROVED'].includes(sheet.rows[x.r]._status));
     if (!targets.length) return msg('Semua baris sudah selesai/approved.');
     const withRemark = remarkOn();
     for (const x of targets) x.remarks = withRemark ? remarksOf(sheet.rows[x.r]) : [];
